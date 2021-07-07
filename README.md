@@ -19,7 +19,7 @@ Below are the functions supported in this package.
 |---|---|
 |open|Open the IP2Proxy BIN data for lookup.|
 |close|Close and clean up the file pointer.|
-|get_package_version|Get the package version (1 to 10 for PX1 to PX10 respectively).|
+|get_package_version|Get the package version (1 to 11 for PX1 to PX11 respectively).|
 |get_module_version|Get the module version.|
 |get_database_version|Get the database version.|
 |isproxy|Check whether if an IP address was a proxy. Returned value:<ul><li>-1 : errors</li><li>0 : not a proxy</li><li>1 : a proxy</li><li>2 : a data center IP address or search engine robot</li></ul>|
@@ -36,6 +36,7 @@ Below are the functions supported in this package.
 |get_as|Return the autonomous system name of the proxy.|
 |get_lastseen|Return the number of days that the proxy was last seen.|
 |get_threat|Return the threat type of the proxy.|
+|get_provider|Return the provider of the proxy.|
 
 ## Usage
 
@@ -43,7 +44,7 @@ Below are the functions supported in this package.
 
 ip2proxy = require('ip2proxy')
 
-local ip2prox = ip2proxy:open('/usr/data/IP2PROXY-IP-PROXYTYPE-COUNTRY-REGION-CITY-ISP-DOMAIN-USAGETYPE-ASN-LASTSEEN-THREAT-RESIDENTIAL.BIN')
+local ip2prox = ip2proxy:open('/usr/data/IP2PROXY-IP-PROXYTYPE-COUNTRY-REGION-CITY-ISP-DOMAIN-USAGETYPE-ASN-LASTSEEN-THREAT-RESIDENTIAL-PROVIDER.BIN')
 
 local result = ip2prox:get_all('8.8.8.8')
 
@@ -58,6 +59,7 @@ print("asn: " .. result.asn)
 print("as: " .. result.as)
 print("lastseen: " .. result.lastseen)
 print("threat: " .. result.threat)
+print("provider: " .. result.provider)
 print("proxytype: " .. result.proxytype)
 print("isproxy: " .. result.isproxy)
 

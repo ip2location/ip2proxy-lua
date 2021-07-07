@@ -1,8 +1,8 @@
 ip2proxy = require('ip2proxy')
 
-local ip2prox = ip2proxy:open('/usr/data/IP2PROXY-IP-PROXYTYPE-COUNTRY-REGION-CITY-ISP-DOMAIN-USAGETYPE-ASN-LASTSEEN-THREAT-RESIDENTIAL.BIN')
+local ip2prox = ip2proxy:open('./IP2PROXY-IP-PROXYTYPE-COUNTRY-REGION-CITY-ISP-DOMAIN-USAGETYPE-ASN-LASTSEEN-THREAT-RESIDENTIAL-PROVIDER.BIN')
 
-local result = ip2prox:get_all('8.8.8.8')
+local result = ip2prox:get_all('37.252.228.50')
 
 print("country_short: " .. result.country_short)
 print("country_long: " .. result.country_long)
@@ -15,6 +15,7 @@ print("asn: " .. result.asn)
 print("as: " .. result.as)
 print("lastseen: " .. result.lastseen)
 print("threat: " .. result.threat)
+print("provider: " .. result.provider)
 print("proxytype: " .. result.proxytype)
 print("isproxy: " .. result.isproxy)
 

@@ -1,5 +1,5 @@
 package = "ip2proxy"
-version = "3.0.0-1"
+version = "3.1.0-1"
 source = {
    url = "git://github.com/ip2location/ip2proxy-lua.git"
 }

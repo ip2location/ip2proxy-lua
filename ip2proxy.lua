@@ -15,6 +15,9 @@ ip2proxy = {
   ipv6indexbaseaddr = 0,
   ipv4columnsize = 0,
   ipv6columnsize = 0,
+  productcode = 0,
+  producttype = 0,
+  filesize = 0,
   columnsize_without_ip = 0,
   country_position_offset = 0,
   region_position_offset = 0,
@@ -27,6 +30,7 @@ ip2proxy = {
   as_position_offset = 0,
   lastseen_position_offset = 0,
   threat_position_offset = 0,
+  provider_position_offset = 0,
   country_enabled = false,
   region_enabled = false,
   city_enabled = false,
@@ -37,7 +41,8 @@ ip2proxy = {
   asn_enabled = false,
   as_enabled = false,
   lastseen_enabled = false,
-  threat_enabled = false
+  threat_enabled = false,
+  provider_enabled = false
 }
 ip2proxy.__index = ip2proxy
 
@@ -54,7 +59,8 @@ ip2proxyrecord = {
   asn = '',
   as = '',
   lastseen = '',
-  threat = ''
+  threat = '',
+  provider = ''
 }
 ip2proxyrecord.__index = ip2proxyrecord
 
@@ -67,19 +73,20 @@ local to_6to4 = bn("42550872755692912415807417417958686719")
 local from_teredo = bn("42540488161975842760550356425300246528")
 local to_teredo = bn("42540488241204005274814694018844196863")
 
-local country_position = {0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3}
-local region_position = {0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4}
-local city_position = {0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5}
-local isp_position = {0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6}
-local proxytype_position = {0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2}
-local domain_position = {0, 0, 0, 0, 0, 7, 7, 7, 7, 7, 7}
-local usagetype_position = {0, 0, 0, 0, 0, 0, 8, 8, 8, 8, 8}
-local asn_position = {0, 0, 0, 0, 0, 0, 0, 9, 9, 9, 9}
-local as_position = {0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10}
-local lastseen_position = {0, 0, 0, 0, 0, 0, 0, 0, 11, 11, 11}
-local threat_position = {0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 12}
+local country_position = {2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}
+local region_position = {0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4}
+local city_position = {0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5}
+local isp_position = {0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6}
+local proxytype_position = {0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}
+local domain_position = {0, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7}
+local usagetype_position = {0, 0, 0, 0, 0, 8, 8, 8, 8, 8, 8}
+local asn_position = {0, 0, 0, 0, 0, 0, 9, 9, 9, 9, 9}
+local as_position = {0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 10}
+local lastseen_position = {0, 0, 0, 0, 0, 0, 0, 11, 11, 11, 11}
+local threat_position = {0, 0, 0, 0, 0, 0, 0, 0, 12, 12, 12}
+local provider_position = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13}
 
-local api_version = "3.0.0"
+local api_version = "3.1.0"
 
 local modes = {
   countryshort = 0x00001,
@@ -94,14 +101,16 @@ local modes = {
   asn = 0x00200,
   as = 0x00400,
   lastseen = 0x00800,
-  threat = 0x01000
+  threat = 0x01000,
+  provider = 0x02000
 }
 
-modes.all = modes.countryshort | modes.countrylong | modes.region | modes.city | modes.isp | modes.proxytype | modes.isproxy | modes.domain | modes.usagetype | modes.asn | modes.as | modes.lastseen | modes.threat
+modes.all = modes.countryshort | modes.countrylong | modes.region | modes.city | modes.isp | modes.proxytype | modes.isproxy | modes.domain | modes.usagetype | modes.asn | modes.as | modes.lastseen | modes.threat | modes.provider
 
 local invalid_address = "Invalid IP address."
 local missing_file = "Invalid database file."
 local not_supported = "This parameter is unavailable for selected data file. Please upgrade the data file."
+local invalid_bin = "Incorrect IP2Proxy BIN file format. Please make sure that you are using the latest IP2Proxy BIN file."
 
 -- for debugging purposes
 local function printme(stuff)
@@ -170,28 +179,6 @@ local function readstr(pos, myfile)
   return value
 end
 
--- read float
-local function readfloat(pos, myfile)
-  myfile:seek("set", pos - 1)
-  local bytestr = myfile:read(4)
-  local value = 0.0
-  if bytestr ~= nil then
-    value = string.unpack("f", bytestr)
-  end
-  return value
-end
-
--- read float
-local function readfloatrow(pos, row)
-  local pos2 = pos + 1 -- due to index starting with 1
-  local bytestr = string.sub(row, pos2, pos2 + 3) -- strip 4 bytes
-  local value = 0.0
-  if bytestr ~= nil then
-    value = string.unpack("f", bytestr)
-  end
-  return value
-end
-
 -- initialize the component with the database path
 function ip2proxy:open(dbpath)
   local x = {}
@@ -217,6 +204,15 @@ function ip2proxy:open(dbpath)
   x.ipv6databaseaddr = readuint32(18, x.f):asnumber()
   x.ipv4indexbaseaddr = readuint32(22, x.f):asnumber()
   x.ipv6indexbaseaddr = readuint32(26, x.f):asnumber()
+  x.productcode = readuint8(30, x.f)
+  x.producttype = readuint8(31, x.f)
+  x.filesize = readuint32(32, x.f):asnumber()
+
+  -- check if is correct BIN (should be 2 for IP2Proxy BIN file), also checking for zipped file (PK being the first 2 chars)
+  if (x.productcode ~= 2 and x.databaseyear >= 21) or (x.databasetype == 80 and x.databasecolumn == 75) then -- only BINs from Jan 2021 onwards have this byte set
+    error(invalid_bin)
+  end
+
   x.ipv4columnsize = x.databasecolumn * 4 -- 4 bytes each column
   x.ipv6columnsize = 16 + ((x.databasecolumn - 1) * 4) -- 4 bytes each column, except IPFrom column which is 16 bytes
   x.columnsize_without_ip = (x.databasecolumn - 1) * 4 -- 4 bytes each column, minus the IPFrom column
@@ -225,59 +221,52 @@ function ip2proxy:open(dbpath)
 
   -- since both IPv4 and IPv6 use 4 bytes for the below columns, can just do it once here
   if country_position[dbt] ~= 0 then
-    -- x.country_position_offset = (country_position[dbt] - 1) * 4
     x.country_position_offset = (country_position[dbt] - 2) * 4
     x.country_enabled = true
   end
   if region_position[dbt] ~= 0 then
-    -- x.region_position_offset = (region_position[dbt] - 1) * 4
     x.region_position_offset = (region_position[dbt] - 2) * 4
     x.region_enabled = true
   end
   if city_position[dbt] ~= 0 then
-    -- x.city_position_offset = (city_position[dbt] - 1) * 4
     x.city_position_offset = (city_position[dbt] - 2) * 4
     x.city_enabled = true
   end
   if isp_position[dbt] ~= 0 then
-    -- x.isp_position_offset = (isp_position[dbt] - 1) * 4
     x.isp_position_offset = (isp_position[dbt] - 2) * 4
     x.isp_enabled = true
   end
   if proxytype_position[dbt] ~= 0 then
-    -- x.proxytype_position_offset = (proxytype_position[dbt] - 1) * 4
     x.proxytype_position_offset = (proxytype_position[dbt] - 2) * 4
     x.proxytype_enabled = true
   end
   if domain_position[dbt] ~= 0 then
-    -- x.domain_position_offset = (domain_position[dbt] - 1) * 4
     x.domain_position_offset = (domain_position[dbt] - 2) * 4
     x.domain_enabled = true
   end
   if usagetype_position[dbt] ~= 0 then
-    -- x.usagetype_position_offset = (usagetype_position[dbt] - 1) * 4
     x.usagetype_position_offset = (usagetype_position[dbt] - 2) * 4
     x.usagetype_enabled = true
   end
   if asn_position[dbt] ~= 0 then
-    -- x.asn_position_offset = (asn_position[dbt] - 1) * 4
     x.asn_position_offset = (asn_position[dbt] - 2) * 4
     x.asn_enabled = true
   end
   if as_position[dbt] ~= 0 then
-    -- x.as_position_offset = (as_position[dbt] - 1) * 4
     x.as_position_offset = (as_position[dbt] - 2) * 4
     x.as_enabled = true
   end
   if lastseen_position[dbt] ~= 0 then
-    -- x.lastseen_position_offset = (lastseen_position[dbt] - 1) * 4
     x.lastseen_position_offset = (lastseen_position[dbt] - 2) * 4
     x.lastseen_enabled = true
   end
   if threat_position[dbt] ~= 0 then
-    -- x.threat_position_offset = (threat_position[dbt] - 1) * 4
     x.threat_position_offset = (threat_position[dbt] - 2) * 4
     x.threat_enabled = true
+  end
+  if provider_position[dbt] ~= 0 then
+    x.provider_position_offset = (provider_position[dbt] - 2) * 4
+    x.provider_enabled = true
   end
 
   x.metaok = true
@@ -332,13 +321,6 @@ function ip2proxy:checkip(ip)
     return R.IPV4, ipnum, ipindex
   end
 
-  -- check for ipv6 format, should be 8 'chunks' of numbers/letters
-  -- without leading/trailing chars
-  -- or fewer than 8 chunks, but with only one `::` group
-  -- chunks = {ip:match("^"..(("([a-fA-F0-9]*):"):rep(8):gsub(":$","$")))}
-  --  if #chunks == 8
-  --  or #chunks < 8 and ip:match('::') and not ip:gsub("::","",1):match('::') then
-
   local isIPv6 = false;
   local hextets = 8;
 
@@ -366,9 +348,9 @@ function ip2proxy:checkip(ip)
   -- DEBUGGING CODE
   -- for key, value in pairs(chunks)
   -- do
-      -- print(key, " -- " , value);
+  -- print(key, " -- " , value);
   -- end
-  
+
   if #chunks == 8 then
     local ipnum = bn.ZERO
     local part = 0
@@ -377,35 +359,25 @@ function ip2proxy:checkip(ip)
       if #v > 0 and part > 65535 then return R.ERROR end
       ipnum = ipnum + (bn(part) << (16 * (8 - x)))
     end
-    
+
     local override = 0
-    
-    -- DEBUGGING
-    -- print("IPNUM BEFORE: " .. ipnum)
-    
+
     -- special cases which should convert to equivalent IPv4
     if ipnum >= from_v4mapped and ipnum <= to_v4mapped then -- ipv4-mapped ipv6
-      -- print("IPv4-mapped") -- DEBUGGING
       override = 1
       ipnum = ipnum - from_v4mapped
     elseif ipnum >= from_6to4 and ipnum <= to_6to4 then  -- 6to4
-      -- print("6to4") -- DEBUGGING
       override = 1
       ipnum = ipnum >> 80
       ipnum2 = ipnum:asnumber() & 0xffffffff
       ipnum = bn(ipnum2) -- convert back to bn
     elseif ipnum >= from_teredo and ipnum <= to_teredo then -- Teredo
-      -- print("Teredo") -- DEBUGGING
       override = 1
       ipnum = ~ipnum
       ipnum2 = ipnum:asnumber() & 0xffffffff
-      -- print("ipnum2: " .. ipnum2) -- DEBUGGING
       ipnum = bn(ipnum2) -- convert back to bn
     end
-    
-    -- DEBUGGING
-    -- print("IPNUM AFTER: " .. ipnum)
-    
+
     local ipindex = 0;
     if override == 1 then
       if self.ipv4indexbaseaddr > 0 then
@@ -440,6 +412,7 @@ function ip2proxyrecord:loadmessage(mesg)
   x.as = mesg
   x.lastseen = mesg
   x.threat = mesg
+  x.provider = mesg
   return x
 end
 
@@ -584,6 +557,10 @@ function ip2proxy:query(ipaddress, mode)
         result.threat = readstr(readuint32row(self.threat_position_offset, row):asnumber(), self.f)
       end
 
+      if (mode&modes.provider ~= 0) and (self.provider_enabled == true) then
+        result.provider = readstr(readuint32row(self.provider_position_offset, row):asnumber(), self.f)
+      end
+
       if (result.country_short == "-") or (result.proxytype == "-") then
         result.isproxy = 0
       else
@@ -698,4 +675,8 @@ function ip2proxy:get_threat(ipaddress)
   return self:query(ipaddress, modes.threat)
 end
 
+-- get provider
+function ip2proxy:get_provider(ipaddress)
+  return self:query(ipaddress, modes.provider)
+end
 return ip2proxy
