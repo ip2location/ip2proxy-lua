@@ -5,12 +5,17 @@ This package allows user to query an IP address if it was being used as VPN anon
 * Free IP2Proxy BIN Data: https://lite.ip2location.com
 * Commercial IP2Proxy BIN Data: https://www.ip2location.com/database/ip2proxy
 
+As an alternative, this package can also call the IP2Proxy Web Service. This requires an API key. If you don't have an existing API key, you can subscribe for one at the below:
+
+https://www.ip2location.com/web-service/ip2proxy
 
 ## Installation
 
 ```
 luarocks install ip2proxy
 ```
+
+## QUERY USING THE BIN FILE
 
 ## Functions
 Below are the functions supported in this package.
@@ -64,5 +69,50 @@ print("proxytype: " .. result.proxytype)
 print("isproxy: " .. result.isproxy)
 
 ip2prox:close()
+
+```
+
+## QUERY USING THE IP2PROXY PROXY DETECTION WEB SERVICE
+
+## Functions
+Below are the functions supported in this package.
+
+|Function Name|Description|
+|---|---|
+|open|Expects 3 input parameters:<ol><li>IP2Proxy API Key.</li><li>Package (PX1 - PX11)</li></li><li>Use HTTPS or HTTP</li></ol> |
+|lookup|Query IP address. This function returns a table containing the proxy info. <ul><li>countryCode</li><li>countryName</li><li>regionName</li><li>cityName</li><li>isp</li><li>domain</li><li>usageType</li><li>asn</li><li>as</li><li>lastSeen</li><li>threat</li><li>proxyType</li><li>isProxy</li><li>provider</li><ul>|
+|get_credit|This function returns the web service credit balance in a table.|
+
+## Usage
+
+```lua
+ip2proxywebservice = require('ip2proxywebservice')
+
+local apikey = 'YOUR_API_KEY'
+local apipackage = 'PX11'
+local usessl = true
+local ip = '8.8.8.8'
+local ws = ip2proxywebservice:open(apikey, apipackage, usessl)
+
+local result = ws:lookup(ip)
+
+print("response: " .. result.response)
+print("countryCode: " .. result.countryCode)
+print("countryName: " .. result.countryName)
+print("regionName: " .. result.regionName)
+print("cityName: " .. result.cityName)
+print("isp: " .. result.isp)
+print("domain: " .. result.domain)
+print("usageType: " .. result.usageType)
+print("asn: " .. result.asn)
+print("as: " .. result.as)
+print("lastSeen: " .. result.lastSeen)
+print("threat: " .. result.threat)
+print("provider: " .. result.provider)
+print("proxyType: " .. result.proxyType)
+print("isProxy: " .. result.isProxy)
+
+local result2 = ws:get_credit()
+print("Credit Balance: " .. result2.response)
 
 ```

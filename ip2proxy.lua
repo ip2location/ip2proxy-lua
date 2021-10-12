@@ -86,7 +86,7 @@ local lastseen_position = {0, 0, 0, 0, 0, 0, 0, 11, 11, 11, 11}
 local threat_position = {0, 0, 0, 0, 0, 0, 0, 0, 12, 12, 12}
 local provider_position = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13}
 
-local api_version = "3.1.0"
+local api_version = "3.2.0"
 
 local modes = {
   countryshort = 0x00001,
