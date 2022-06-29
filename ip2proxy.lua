@@ -11,6 +11,8 @@ ip2proxy = {
   ipv4databaseaddr = 0,
   ipv6databasecount = 0,
   ipv6databaseaddr = 0,
+  ipv4indexed = false,
+  ipv6indexed = false,
   ipv4indexbaseaddr = 0,
   ipv6indexbaseaddr = 0,
   ipv4columnsize = 0,
@@ -18,7 +20,6 @@ ip2proxy = {
   productcode = 0,
   producttype = 0,
   filesize = 0,
-  columnsize_without_ip = 0,
   country_position_offset = 0,
   region_position_offset = 0,
   city_position_offset = 0,
@@ -86,7 +87,7 @@ local lastseen_position = {0, 0, 0, 0, 0, 0, 0, 11, 11, 11, 11}
 local threat_position = {0, 0, 0, 0, 0, 0, 0, 0, 12, 12, 12}
 local provider_position = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13}
 
-local api_version = "3.2.0"
+local api_version = "3.3.0"
 
 local modes = {
   countryshort = 0x00001,
@@ -118,10 +119,28 @@ local function printme(stuff)
   print(inspect(stuff))
 end
 
+-- read row
+local function readrow(myfile, pos, len)
+  myfile:seek("set", pos - 1)
+  local bytestr = myfile:read(len)
+  return bytestr
+end
+
 -- read byte
 local function readuint8(pos, myfile)
   myfile:seek("set", pos - 1)
   local bytestr = myfile:read(1)
+  local value = 0 -- no need BigNum
+  if bytestr ~= nil then
+    value = string.byte(bytestr)
+  end
+  return value
+end
+
+-- read byte
+local function readuint8header(pos, row)
+  local pos2 = pos + 1 -- due to index starting with 1
+  local bytestr = string.sub(row, pos2, pos2) -- strip 1 byte
   local value = 0 -- no need BigNum
   if bytestr ~= nil then
     value = string.byte(bytestr)
@@ -136,6 +155,17 @@ local function readuint32(pos, myfile)
   local value = bn.ZERO
   if bytestr ~= nil then
     value = bn(string.unpack("<I4", bytestr))
+  end
+  return value
+end
+
+-- read unsigned 32-bit integer
+local function readuint32header(pos, row)
+  local pos2 = pos + 1 -- due to index starting with 1
+  local bytestr = string.sub(row, pos2, pos2 + 3) -- strip 4 bytes
+  local value = 0 -- no need BigNum
+  if bytestr ~= nil then
+    value = string.unpack("<I4", bytestr)
   end
   return value
 end
@@ -162,16 +192,27 @@ local function readuint128(pos, myfile)
   return value
 end
 
+-- read unsigned 128-bit integer
+local function readuint128row(pos, row)
+  local pos2 = pos + 1 -- due to index starting with 1
+  local bytestr = string.sub(row, pos2, pos2 + 15) -- strip 16 bytes
+  local value = bn.ZERO
+  if bytestr ~= nil then
+    value = bn(string.unpack("<I8", bytestr)) + (bn(string.unpack("<I8", bytestr, 9)) << 64) -- cannot read 16 bytes at once so split into 2
+  end
+  return value
+end
+
 -- read string
 local function readstr(pos, myfile)
   myfile:seek("set", pos)
-  local len = myfile:read(1)
+  local data = myfile:read(256) -- max size of string field + 1 byte for length
   local strlen = 0
+  local len = string.sub(data, 1, 1)
   if len ~= nil then
     strlen = string.byte(len)
   end
-  myfile:seek("set", pos + 1)
-  local bytestr = myfile:read(strlen)
+  local bytestr = string.sub(data, 2, (strlen + 1))
   local value = ''
   if bytestr ~= nil then
     value = bytestr
@@ -192,25 +233,36 @@ function ip2proxy:open(dbpath)
   else
     x.f = file
   end
-  x.databasetype = readuint8(1, x.f)
-  x.databasecolumn = readuint8(2, x.f)
-  x.databaseyear = readuint8(3, x.f)
-  x.databasemonth = readuint8(4, x.f)
-  x.databaseday = readuint8(5, x.f)
 
-  x.ipv4databasecount = readuint32(6, x.f):asnumber()
-  x.ipv4databaseaddr = readuint32(10, x.f):asnumber()
-  x.ipv6databasecount = readuint32(14, x.f):asnumber()
-  x.ipv6databaseaddr = readuint32(18, x.f):asnumber()
-  x.ipv4indexbaseaddr = readuint32(22, x.f):asnumber()
-  x.ipv6indexbaseaddr = readuint32(26, x.f):asnumber()
-  x.productcode = readuint8(30, x.f)
-  x.producttype = readuint8(31, x.f)
-  x.filesize = readuint32(32, x.f):asnumber()
+  local row = readrow(x.f, 1, 64) -- 64-byte header
+
+  x.databasetype = readuint8header(0, row)
+  x.databasecolumn = readuint8header(1, row)
+  x.databaseyear = readuint8header(2, row)
+  x.databasemonth = readuint8header(3, row)
+  x.databaseday = readuint8header(4, row)
+
+  x.ipv4databasecount = readuint32header(5, row)
+  x.ipv4databaseaddr = readuint32header(9, row)
+  x.ipv6databasecount = readuint32header(13, row)
+  x.ipv6databaseaddr = readuint32header(17, row)
+  x.ipv4indexbaseaddr = readuint32header(21, row)
+  x.ipv6indexbaseaddr = readuint32header(25, row)
+  x.productcode = readuint8header(29, row)
+  x.producttype = readuint8header(30, row)
+  x.filesize = readuint32header(31, row)
 
   -- check if is correct BIN (should be 2 for IP2Proxy BIN file), also checking for zipped file (PK being the first 2 chars)
   if (x.productcode ~= 2 and x.databaseyear >= 21) or (x.databasetype == 80 and x.databasecolumn == 75) then -- only BINs from Jan 2021 onwards have this byte set
     error(invalid_bin)
+  end
+
+  if x.ipv4indexbaseaddr > 0 then
+    x.ipv4indexed = true
+  end
+
+  if x.ipv6databasecount > 0 and x.ipv6indexbaseaddr > 0 then
+    x.ipv6indexed = true
   end
 
   x.ipv4columnsize = x.databasecolumn * 4 -- 4 bytes each column
@@ -297,7 +349,7 @@ function ip2proxy:checkip(ip)
     end
 
     local ipindex = 0;
-    if self.ipv4indexbaseaddr > 0 then
+    if self.ipv4indexed then
       ipindex = ((ipnum >> 16) << 3):asnumber() + self.ipv4indexbaseaddr
     end
     return R.IPV4, ipnum, ipindex
@@ -315,7 +367,7 @@ function ip2proxy:checkip(ip)
     end
 
     local ipindex = 0;
-    if self.ipv4indexbaseaddr > 0 then
+    if self.ipv4indexed then
       ipindex = ((ipnum >> 16) << 3):asnumber() + self.ipv4indexbaseaddr
     end
     return R.IPV4, ipnum, ipindex
@@ -380,12 +432,12 @@ function ip2proxy:checkip(ip)
 
     local ipindex = 0;
     if override == 1 then
-      if self.ipv4indexbaseaddr > 0 then
+      if self.ipv4indexed then
         ipindex = ((ipnum >> 16) << 3):asnumber() + self.ipv4indexbaseaddr
       end
       return R.IPV4, ipnum, ipindex
     else
-      if self.ipv6indexbaseaddr > 0 then
+      if self.ipv6indexed then
         ipindex = ((ipnum >> 112) << 3):asnumber() + self.ipv6indexbaseaddr
       end
       return R.IPV6, ipnum, ipindex
@@ -455,7 +507,10 @@ function ip2proxy:query(ipaddress, mode)
   local ipfrom = bn.ZERO
   local ipto = bn.ZERO
   local maxip = bn.ZERO
-  local firstcol = 4
+  local firstcol = 4 -- 4 bytes for IP From
+  local fullrow
+  local row
+  local readlen = 0
   local countrypos = 0
 
   if iptype == 4 then
@@ -464,6 +519,7 @@ function ip2proxy:query(ipaddress, mode)
     maxip = max_ipv4_range
     colsize = self.ipv4columnsize
   else
+    firstcol = 16 -- 16 bytes for IP From
     baseaddr = self.ipv6databaseaddr
     high = self.ipv6databasecount
     maxip = max_ipv6_range
@@ -472,8 +528,9 @@ function ip2proxy:query(ipaddress, mode)
 
   -- reading index
   if ipindex > 0 then
-    low = readuint32(ipindex, self.f):asnumber()
-    high = readuint32(ipindex + 4, self.f):asnumber()
+    row = readrow(self.f, ipindex, 8) -- 4 bytes for each IP From/To
+    low = readuint32row(0, row):asnumber()
+    high = readuint32row(4, row):asnumber()
   end
 
   if ipno >= maxip then
@@ -483,23 +540,22 @@ function ip2proxy:query(ipaddress, mode)
   while low <= high do
     mid = round((low + high) / 2)
     rowoffset = baseaddr + (mid * colsize)
-    rowoffset2 = rowoffset + colsize
+
+    -- reading IP From + whole row + next IP From
+    readlen = colsize + firstcol
+    fullrow = readrow(self.f, rowoffset, readlen)
 
     if iptype == 4 then
-      ipfrom = readuint32(rowoffset, self.f)
-      ipto = readuint32(rowoffset2, self.f)
+      ipfrom = readuint32row(0, fullrow)
+      ipto = readuint32row(colsize, fullrow)
     else
-      ipfrom = readuint128(rowoffset, self.f)
-      ipto = readuint128(rowoffset2, self.f)
+      ipfrom = readuint128row(0, fullrow)
+      ipto = readuint128row(colsize, fullrow)
     end
 
     if (ipno >= ipfrom) and (ipno < ipto) then
-      if iptype == 6 then
-        firstcol = 16
-      end
-
-      self.f:seek("set", rowoffset + firstcol - 1)
-      local row = self.f:read(self.columnsize_without_ip)
+      rowlen = colsize - firstcol
+      row = string.sub(fullrow, firstcol + 1, (firstcol + rowlen + 1)) -- extract the actual row data
 
       if self.proxytype_enabled == true then
         if (mode&modes.proxytype ~= 0) or (mode&modes.isproxy ~= 0) then
