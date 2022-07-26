@@ -87,7 +87,7 @@ local lastseen_position = {0, 0, 0, 0, 0, 0, 0, 11, 11, 11, 11}
 local threat_position = {0, 0, 0, 0, 0, 0, 0, 0, 12, 12, 12}
 local provider_position = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13}
 
-local api_version = "3.3.0"
+local api_version = "3.3.1"
 
 local modes = {
   countryshort = 0x00001,
@@ -554,8 +554,8 @@ function ip2proxy:query(ipaddress, mode)
     end
 
     if (ipno >= ipfrom) and (ipno < ipto) then
-      rowlen = colsize - firstcol
-      row = string.sub(fullrow, firstcol + 1, (firstcol + rowlen + 1)) -- extract the actual row data
+      readlen = colsize - firstcol
+      row = string.sub(fullrow, firstcol + 1, (firstcol + readlen + 1)) -- extract the actual row data
 
       if self.proxytype_enabled == true then
         if (mode&modes.proxytype ~= 0) or (mode&modes.isproxy ~= 0) then
