@@ -26,7 +26,7 @@ You can query the geolocation information from the IP2Proxy BIN database as belo
 
 ip2proxy = require('ip2proxy')
 
-local ip2prox = ip2proxy:open('/usr/data/IP2PROXY-IP-PROXYTYPE-COUNTRY-REGION-CITY-ISP-DOMAIN-USAGETYPE-ASN-LASTSEEN-THREAT-RESIDENTIAL-PROVIDER.BIN')
+local ip2prox = ip2proxy:open('/usr/data/IP2PROXY-IP-PROXYTYPE-COUNTRY-REGION-CITY-ISP-DOMAIN-USAGETYPE-ASN-LASTSEEN-THREAT-RESIDENTIAL-PROVIDER-FRAUDSCORE.BIN')
 
 local result = ip2prox:get_all('8.8.8.8')
 
@@ -35,6 +35,7 @@ print("country_long: " .. result.country_long)
 print("region: " .. result.region)
 print("city: " .. result.city)
 print("isp: " .. result.isp)
+print("proxytype: " .. result.proxytype)
 print("domain: " .. result.domain)
 print("usagetype: " .. result.usagetype)
 print("asn: " .. result.asn)
@@ -42,7 +43,7 @@ print("as: " .. result.as)
 print("lastseen: " .. result.lastseen)
 print("threat: " .. result.threat)
 print("provider: " .. result.provider)
-print("proxytype: " .. result.proxytype)
+print("fraudscore: " .. result.fraudscore)
 print("isproxy: " .. result.isproxy)
 
 ip2prox:close()

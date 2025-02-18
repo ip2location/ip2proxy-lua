@@ -32,6 +32,7 @@ ip2proxy = {
   lastseen_position_offset = 0,
   threat_position_offset = 0,
   provider_position_offset = 0,
+  fraudscore_position_offset = 0,
   country_enabled = false,
   region_enabled = false,
   city_enabled = false,
@@ -44,6 +45,7 @@ ip2proxy = {
   lastseen_enabled = false,
   threat_enabled = false,
   provider_enabled = false,
+  fraudscore_enabled = false,
 }
 ip2proxy.__index = ip2proxy
 
@@ -62,6 +64,7 @@ ip2proxyrecord = {
   lastseen = "",
   threat = "",
   provider = "",
+  fraudscore = "",
 }
 ip2proxyrecord.__index = ip2proxyrecord
 
@@ -74,20 +77,21 @@ local to_6to4 = bn("42550872755692912415807417417958686719")
 local from_teredo = bn("42540488161975842760550356425300246528")
 local to_teredo = bn("42540488241204005274814694018844196863")
 
-local country_position = { 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 }
-local region_position = { 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4 }
-local city_position = { 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5 }
-local isp_position = { 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6 }
-local proxytype_position = { 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 }
-local domain_position = { 0, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7 }
-local usagetype_position = { 0, 0, 0, 0, 0, 8, 8, 8, 8, 8, 8 }
-local asn_position = { 0, 0, 0, 0, 0, 0, 9, 9, 9, 9, 9 }
-local as_position = { 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 10 }
-local lastseen_position = { 0, 0, 0, 0, 0, 0, 0, 11, 11, 11, 11 }
-local threat_position = { 0, 0, 0, 0, 0, 0, 0, 0, 12, 12, 12 }
-local provider_position = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13 }
+local country_position = { 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 }
+local region_position = { 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4 }
+local city_position = { 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5 }
+local isp_position = { 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6 }
+local proxytype_position = { 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 }
+local domain_position = { 0, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7 }
+local usagetype_position = { 0, 0, 0, 0, 0, 8, 8, 8, 8, 8, 8, 8 }
+local asn_position = { 0, 0, 0, 0, 0, 0, 9, 9, 9, 9, 9, 9 }
+local as_position = { 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 10, 10 }
+local lastseen_position = { 0, 0, 0, 0, 0, 0, 0, 11, 11, 11, 11, 11 }
+local threat_position = { 0, 0, 0, 0, 0, 0, 0, 0, 12, 12, 12, 12 }
+local provider_position = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 13 }
+local fraudscore_position = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14 }
 
-local api_version = "3.3.2"
+local api_version = "3.4.0"
 
 local modes = {
   countryshort = 0x00001,
@@ -104,6 +108,7 @@ local modes = {
   lastseen = 0x00800,
   threat = 0x01000,
   provider = 0x02000,
+  fraudscore = 0x04000,
 }
 
 modes.all = modes.countryshort
@@ -120,6 +125,7 @@ modes.all = modes.countryshort
 | modes.lastseen
 | modes.threat
 | modes.provider
+| modes.fraudscore
 
 local invalid_address = "Invalid IP address."
 local missing_file = "Invalid database file."
@@ -338,6 +344,10 @@ function ip2proxy:open(dbpath)
     x.provider_position_offset = (provider_position[dbt] - 2) * 4
     x.provider_enabled = true
   end
+  if fraudscore_position[dbt] ~= 0 then
+    x.fraudscore_position_offset = (fraudscore_position[dbt] - 2) * 4
+    x.fraudscore_enabled = true
+  end
 
   x.metaok = true
   -- printme(x)
@@ -497,6 +507,7 @@ function ip2proxyrecord:loadmessage(mesg)
   x.lastseen = mesg
   x.threat = mesg
   x.provider = mesg
+  x.fraudscore = mesg
   return x
 end
 
@@ -658,6 +669,10 @@ function ip2proxy:query(ipaddress, mode)
         result.provider = readstr(readuint32row(self.provider_position_offset, row):asnumber(), self.f)
       end
 
+      if (mode & modes.fraudscore ~= 0) and (self.fraudscore_enabled == true) then
+        result.fraudscore = readstr(readuint32row(self.fraudscore_position_offset, row):asnumber(), self.f)
+      end
+
       if (result.country_short == "-") or (result.proxytype == "-") then
         result.isproxy = 0
       else
@@ -775,5 +790,10 @@ end
 -- get provider
 function ip2proxy:get_provider(ipaddress)
   return self:query(ipaddress, modes.provider)
+end
+
+-- get fraud score
+function ip2proxy:get_fraudscore(ipaddress)
+  return self:query(ipaddress, modes.fraudscore)
 end
 return ip2proxy
