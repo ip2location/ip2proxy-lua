@@ -91,7 +91,7 @@ local threat_position = { 0, 0, 0, 0, 0, 0, 0, 0, 12, 12, 12, 12 }
 local provider_position = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 13 }
 local fraudscore_position = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14 }
 
-local api_version = "3.4.0"
+local api_version = "3.4.1"
 
 local modes = {
   countryshort = 0x00001,
@@ -467,9 +467,8 @@ function ip2proxy:checkip(ip)
       ipnum = bn(ipnum2) -- convert back to bn
     elseif ipnum >= from_teredo and ipnum <= to_teredo then -- Teredo
       override = 1
-      ipnum = ~ipnum
-      ipnum2 = ipnum:asnumber() & 0xffffffff
-      ipnum = bn(ipnum2) -- convert back to bn
+      -- invert lower 32 bits only (bypass the bnot from the bn coz of weird error)
+      ipnum = bn(0xffffffff) - (ipnum & bn(0xffffffff))
     end
 
     local ipindex = 0
