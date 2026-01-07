@@ -91,7 +91,7 @@ local threat_position = { 0, 0, 0, 0, 0, 0, 0, 0, 12, 12, 12, 12 }
 local provider_position = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 13 }
 local fraudscore_position = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14 }
 
-local api_version = "3.4.1"
+local api_version = "3.4.2"
 
 local modes = {
   countryshort = 0x00001,
@@ -712,7 +712,7 @@ function ip2proxy:get_package_version()
 end
 
 -- get database version
-function ip2proxy:get_package_version()
+function ip2proxy:get_database_version()
   return "20" .. self.databaseyear .. "." .. self.databasemonth .. "." .. self.databaseday
 end
 

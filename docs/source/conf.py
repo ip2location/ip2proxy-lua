@@ -7,8 +7,8 @@ project = 'IP2Proxy Lua'
 copyright = '2026, IP2Location'
 author = 'IP2Location'
 
-release = '3.4.1'
-version = '3.4.1'
+release = '3.4.2'
+version = '3.4.2'
 
 # -- General configuration
 
