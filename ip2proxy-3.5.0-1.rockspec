@@ -1,5 +1,5 @@
 package = "ip2proxy"
-version = "3.4.2-1"
+version = "3.5.0-1"
 source = {
    url = "git://github.com/ip2location/ip2proxy-lua.git"
 }
@@ -7,9 +7,9 @@ description = {
    summary = "IP2Proxy Lua Package",
    detailed = [[
       This Lua package allows the user to query an IP address if it was being used as VPN anonymizer,
-      open proxies, web proxies, Tor exits, data center, web hosting (DCH) range, search engine robots (SES)
-      and residential (RES) by using IP2Proxy database. This package uses a file based database available at
-      IP2Location.com. It supports both IP address in IPv4 and IPv6.
+      open proxies, web proxies, Tor exits, data center, web hosting (DCH) range, search engine robots (SES),
+      AI crawlers (AIC) and residential (RES) by using IP2Proxy database. This package uses a file based
+      database available at IP2Location.com. It supports both IP address in IPv4 and IPv6.
    ]],
    homepage = "https://www.ip2location.com/development-libraries/ip2proxy/lua",
    license = "MIT",

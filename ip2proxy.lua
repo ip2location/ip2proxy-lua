@@ -91,7 +91,7 @@ local threat_position = { 0, 0, 0, 0, 0, 0, 0, 0, 12, 12, 12, 12 }
 local provider_position = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 13 }
 local fraudscore_position = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14 }
 
-local api_version = "3.4.2"
+local api_version = "3.5.0"
 
 local modes = {
   countryshort = 0x00001,
@@ -675,7 +675,7 @@ function ip2proxy:query(ipaddress, mode)
       if (result.country_short == "-") or (result.proxytype == "-") then
         result.isproxy = 0
       else
-        if (result.proxytype == "DCH") or (result.proxytype == "SES") then
+        if (result.proxytype == "DCH") or (result.proxytype == "SES") or (result.proxytype == "AIC") then
           result.isproxy = 2
         else
           result.isproxy = 1
