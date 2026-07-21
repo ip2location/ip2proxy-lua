@@ -91,7 +91,7 @@ local threat_position = { 0, 0, 0, 0, 0, 0, 0, 0, 12, 12, 12, 12 }
 local provider_position = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 13 }
 local fraudscore_position = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14 }
 
-local api_version = "3.5.0"
+local api_version = "3.5.1"
 
 local modes = {
   countryshort = 0x00001,
