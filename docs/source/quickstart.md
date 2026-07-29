@@ -13,6 +13,7 @@ This library requires IP2Proxy BIN database to function. You may download the BI
 To install the library, use the following command:
 
 ```
+luarocks install --server=https://luarocks.org/dev lua-nums
 luarocks install ip2proxy
 ```
 
